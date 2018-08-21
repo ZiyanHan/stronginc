@@ -340,18 +340,27 @@ void  StrongInc::recalculate_incrementl_dual(Graph &dgraph, Graph &qgraph,
 
    }
 
-void StrongInc::cal_culculate_inc_dhop_nodes_add(Graph &dgraph, int d_Q, std::unordered_set<VertexID> &ball_node,
-									  std::vector<int> &dis, std::set<std::pair<VertexID,VertexID>> &add_edges){
+void StrongInc::cal_culculate_inc_dhop_nodes_add(Graph &dgraph, int d_Q, 
+									  std::unordered_map<VertexID,int> &dis, std::set<std::pair<VertexID,VertexID>> &add_edges){
  //add_edges id <dgraph_num_vertices
     int dgraph_num_vertices = dgraph.GetNumVertices();
     //std::cout<<"update dgraph_num_vertices="<<dgraph_num_vertices<<std::endl;
-    dis.resize(dgraph_num_vertices,INT_MAX);
+    // dis.resize(dgraph_num_vertices,INT_MAX);
     VertexID base_id = 0;
     VertexID inc_id = 0;
     for(auto e : add_edges){
-        if(dis[e.first]>=d_Q && dis[e.second]>=d_Q){
-            continue;
-        }else if(dis[e.first]-2 >= dis[e.second]){
+		if(dis.find(e.first)==dis.end() && dis.find(e.second)==dis.end()){
+			continue;
+		}
+		else if(dis.find(e.first)==dis.end()){
+			base_id = e.second;
+            inc_id = e.first;
+		}
+		else if(dis.find(e.second)==dis.end()){
+			base_id = e.first;
+            inc_id = e.second;
+		}
+		else if(dis[e.first]-2 >= dis[e.second]){
             base_id = e.second;
             inc_id = e.first;
         }else if(dis[e.second]-2 >= dis[e.first]){
@@ -362,7 +371,10 @@ void StrongInc::cal_culculate_inc_dhop_nodes_add(Graph &dgraph, int d_Q, std::un
         }
         std::queue<VertexID> q;
         dis[inc_id] = dis[base_id] + 1;
-        ball_node.insert(inc_id);
+		if(dis[inc_id] >= d_Q){
+			continue;
+		}
+        // ball_node.insert(inc_id);
         q.push(inc_id);
         while(!q.empty()){
             VertexID root = q.front();
@@ -373,14 +385,14 @@ void StrongInc::cal_culculate_inc_dhop_nodes_add(Graph &dgraph, int d_Q, std::un
             for(auto v : dgraph.GetChildrenID(root)){
                 if(dis[v] > dis[root]+1){
                     q.push(v);
-                    ball_node.insert(v);
+                    // ball_node.insert(v);
                     dis[v] = dis[root] + 1;
                 }
             }
             for (auto v : dgraph.GetParentsID(root)){
 				if(dis[v] > dis[root]+1){
 					q.push(v);
-					ball_node.insert(v);
+					// ball_node.insert(v);
 					dis[v] = dis[root] + 1;
 				}
             }
@@ -393,8 +405,8 @@ void StrongInc::strong_simulation_inc_only_add(Graph &dgraph, Graph &qgraph,
                                       std::vector<StrongR> &strong_r,
                                       std::set<std::pair<VertexID,VertexID>> &add_edges,
 									  int flag,
-									  std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
-									  std::unordered_map<VertexID,std::vector<int>> &whole_dist){
+									  // std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
+									  std::unordered_map<VertexID,std::unordered_map<VertexID,int>> &whole_dist){
     /**
 	*calculate qgaraph diameter
 	*/
@@ -475,14 +487,15 @@ void StrongInc::strong_simulation_inc_only_add(Graph &dgraph, Graph &qgraph,
 		/**
 		*find d_hop_nodes for w in dgraph
 		*/
+		
 		std::unordered_set<VertexID> ball_node;
 		int tmp_flag = 0;
-		if(whole_ball_nodes.find(w) == whole_ball_nodes.end()){
+		if(whole_dist[w].find(w) == whole_dist[w].end()){
 			dgraph.find_hop_nodes(w,d_Q,ball_node);
 			tmp_flag = 1;
 		}
 		else{
-			cal_culculate_inc_dhop_nodes_add(dgraph, d_Q, whole_ball_nodes[w], whole_dist[w], add_edges);
+			cal_culculate_inc_dhop_nodes_add(dgraph, d_Q, whole_dist[w], add_edges);
 		}
 		
 		std::unordered_set<VertexID> ball_filter_node;
@@ -501,7 +514,7 @@ void StrongInc::strong_simulation_inc_only_add(Graph &dgraph, Graph &qgraph,
 		else{
 			for(auto u : qgraph.GetAllVerticesID()){
 				for (auto v : dsim[u]){
-					if(whole_ball_nodes[w].find(v) != whole_ball_nodes[w].end()){
+					if(whole_dist[w].find(v) != whole_dist[w].end()){
 						S_w[u].insert(v);
 						ball_filter_node.insert(v);
 					}
@@ -520,7 +533,51 @@ void StrongInc::strong_simulation_inc_only_add(Graph &dgraph, Graph &qgraph,
                 }
             }
         }
+		/*
+		std::unordered_set<VertexID> ball_node;
+		int tmp_size=0;
+        if(whole_ball_nodes.find(w)!=whole_ball_nodes.end()){
+			tmp_size=whole_ball_nodes[w].size();
+            cal_culculate_inc_dhop_nodes_add(dgraph,d_Q,whole_ball_nodes[w],whole_dist[w],add_edges);
+            for(auto v:whole_ball_nodes[w]){
+                ball_node.insert(v);
+            }
+        }else{
+            dgraph.find_hop_nodes(w,d_Q,ball_node);
+        }
 
+        std::unordered_set<VertexID> ball_filter_node;
+        std::unordered_set<Edge> ball_filter_edge;
+        std::unordered_map<VertexID, std::unordered_set<VertexID>> S_w;
+        for(auto u : qgraph.GetAllVerticesID()){
+            for (auto v : dsim[u]){
+				if(ball_node.find(v) != ball_node.end()){
+					S_w[u].insert(v);
+					ball_filter_node.insert(v);
+				}	
+			}
+        }
+		if(tmp_size==ball_filter_node.size()){
+            for(auto strong_ball:strong_r){
+                if(strong_ball.center()==w){
+                    max_result.push_back(strong_ball);
+                }
+            }
+            continue;				     
+		}
+        for(auto e: qgraph.GetAllEdges()){
+            VertexID sourceid=e.src();
+            VertexID targetid=e.dst();
+            for (auto sim_v1 : S_w[sourceid]){
+                for(auto sim_v2 : S_w[targetid]){
+                    if (dgraph.ExistEdge(sim_v1,sim_v2)){
+                        ball_filter_edge.insert(Edge(sim_v1,sim_v2,1));
+                    }
+                }
+            }
+        }
+		*/
+		
         Ball_View ball_view(ball_filter_node,ball_filter_edge);
 
         std::unordered_set<VertexID> refined_ball_vertex;

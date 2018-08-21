@@ -347,15 +347,15 @@ std::vector<StrongR> StrongSim::strong_simulation_sim(Graph &dgraph, Graph &qgra
     return max_result;
 }
 
-void StrongSim::cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, int d_hop, std::unordered_set<VertexID> &result, std::vector<int> &dis){
+void StrongSim::cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, int d_hop, std::unordered_map<VertexID,int> &dis){
     int dgraph_num_vertices = dgraph.GetNumVertices();
     std::vector<int> color(dgraph_num_vertices,0);
-    dis.resize(dgraph_num_vertices,INT_MAX);
+    // dis.resize(dgraph_num_vertices,INT_MAX);
     std::queue<VertexID> q;
     q.push(vid);
     dis[vid] = 0;
     color[vid] = 1;
-    result.insert(vid);
+    // result.insert(vid);
     while(!q.empty()){
          VertexID root = q.front();
          q.pop();
@@ -367,7 +367,7 @@ void StrongSim::cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, i
                  q.push(v);
                  color[v] = 1;
                  dis[v] = dis[root] + 1;
-                 result.insert(v);
+                 // result.insert(v);
              }
          }
          for (auto v: dgraph.GetParentsID(root)){
@@ -375,7 +375,7 @@ void StrongSim::cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, i
                  q.push(v);
                  color[v] = 1;
                  dis[v] = dis[root] + 1;
-                 result.insert(v);
+                 // result.insert(v);
              }
          }
     }
@@ -383,8 +383,9 @@ void StrongSim::cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, i
  }
 
 std::vector<StrongR> StrongSim::strong_simulation_sim_only_add(Graph &dgraph, Graph &qgraph, int flag,
-									std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
-									std::unordered_map<VertexID,std::vector<int>> &whole_dist){
+									// std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
+									std::unordered_map<VertexID,std::unordered_map<VertexID,int>> &whole_dist){
+									// std::unordered_map<VertexID,std::vector<int>> &whole_dist){
     /**
      *calculate qgaraph diameter
     */
@@ -417,7 +418,8 @@ std::vector<StrongR> StrongSim::strong_simulation_sim_only_add(Graph &dgraph, Gr
 			
 			// std::unordered_set<VertexID> ball_node;			
 			// dgraph.find_hop_nodes(w,d_Q,ball_node); // replaced by the next line.
-			cal_culculate_directed_dhop_nodes(dgraph, w, d_Q, whole_ball_nodes[w], whole_dist[w]);			
+			// cal_culculate_directed_dhop_nodes(dgraph, w, d_Q, whole_ball_nodes[w], whole_dist[w]);			
+			cal_culculate_directed_dhop_nodes(dgraph, w, d_Q, whole_dist[w]);			
 			
 			std::unordered_set<VertexID> ball_filter_node;
 			std::unordered_set<Edge> ball_filter_edge;
@@ -425,7 +427,7 @@ std::vector<StrongR> StrongSim::strong_simulation_sim_only_add(Graph &dgraph, Gr
             for(auto u : qgraph.GetAllVerticesID()){
 				for (auto v : global_sim[u]){
 					// if(ball_node.find(v) != ball_node.end()){
-					if(whole_ball_nodes[w].find(v) != whole_ball_nodes[w].end()){
+					if(whole_dist[w].find(v) != whole_dist[w].end()){
 						S_w[u].insert(v);
                         ball_filter_node.insert(v);
                     }

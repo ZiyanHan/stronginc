@@ -65,11 +65,12 @@ class StrongSim{
         calculate strong simulation result
         */
 
-	 void cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, int d_hop, std::unordered_set<VertexID> &result, std::vector<int> &dis);
+	 void cal_culculate_directed_dhop_nodes(Graph &dgraph, VertexID vid, int d_hop, std::unordered_map<VertexID,int> &dis);
 	 
 	 std::vector<StrongR> strong_simulation_sim_only_add(Graph &dgraph, Graph &qgraph, int flag,
-									std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
-									std::unordered_map<VertexID,std::vector<int>> &whole_dist);
+									// std::unordered_map<VertexID,std::unordered_set<VertexID>> &whole_ball_nodes,
+									// std::unordered_map<VertexID,std::vector<int>> &whole_dist);
+									std::unordered_map<VertexID,std::unordered_map<VertexID,int>> &whole_dist);
 	 
 	 std::vector<StrongR> strong_simulation_sim(Graph &dgraph, Graph &qgraph);
 	 
